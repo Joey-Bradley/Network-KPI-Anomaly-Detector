@@ -1,0 +1,20 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Sample data (generated locally)
+data/kpi_data.csv
+
+# Virtual environments
+.venv
+
+# Secrets
+.env
+
+# uv
+uv.lock
+.python-version
