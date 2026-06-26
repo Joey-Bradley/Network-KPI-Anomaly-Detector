@@ -250,10 +250,14 @@ Provide a concise, technical analysis with specific action items."""
                         max_tokens=800
                     )
                     analysis = response.choices[0].message.content
-                    st.markdown(f"### Analysis for {selected_flagged}")
-                    st.markdown(analysis)
+                    st.session_state["ai_analysis"] = analysis
+                    st.session_state["ai_analysis_cell"] = selected_flagged
                 except Exception as e:
                     st.error(f"AI analysis failed: {e}")
+
+    if "ai_analysis" in st.session_state and st.session_state.get("ai_analysis_cell") == selected_flagged:
+        st.markdown(f"### Analysis for {selected_flagged}")
+        st.markdown(st.session_state["ai_analysis"])
 
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.divider()
