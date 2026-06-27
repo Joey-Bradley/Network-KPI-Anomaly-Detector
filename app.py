@@ -36,14 +36,16 @@ st.divider()
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.header("⚙️ Configuration")
-    server_api_key = os.getenv("DEEPSEEK_API_KEY", "")
+    # Strip ASCII and smart/curly quotes that text editors may introduce around .env values
+    _QUOTE_CHARS = '"\'“”‘’'
+    server_api_key = os.getenv("DEEPSEEK_API_KEY", "").strip(_QUOTE_CHARS)
     api_key = server_api_key if server_api_key else st.text_input(
         "DeepSeek API Key",
         value="",
         type="password",
         placeholder="sk-...",
         help="Required for AI root cause analysis"
-    )
+    ).strip(_QUOTE_CHARS)
     if server_api_key:
         st.caption("✅ API key configured")
     st.divider()
@@ -66,27 +68,22 @@ with st.sidebar:
 
 
 # ── Data Loading ──────────────────────────────────────────────────────────────
-col1, col2 = st.columns([2, 1])
-with col1:
-    uploaded = st.file_uploader("Upload KPI CSV file", type=["csv"])
-with col2:
-    use_sample = st.button("📊 Load Sample Data", use_container_width=True,
-                           help="Uses data/kpi_data.csv — run generate_kpi_data.py first")
+uploaded = st.file_uploader("Upload KPI CSV file (optional — sample data loads automatically)", type=["csv"])
+
+@st.cache_data
+def load_sample_data():
+    return pd.read_csv("data/kpi_data.csv", parse_dates=["timestamp"])
 
 df_raw = None
 if uploaded:
     df_raw = pd.read_csv(uploaded, parse_dates=["timestamp"])
     st.success(f"Loaded {len(df_raw):,} records from uploaded file.")
-elif use_sample:
+else:
     if os.path.exists("data/kpi_data.csv"):
-        df_raw = pd.read_csv("data/kpi_data.csv", parse_dates=["timestamp"])
-        st.success(f"Loaded {len(df_raw):,} records from sample data.")
+        df_raw = load_sample_data()
     else:
         st.error("Sample data not found. Run `python generate_kpi_data.py` first.")
-
-if df_raw is None:
-    st.info("Upload a CSV file or load the sample data to get started.")
-    st.stop()
+        st.stop()
 
 
 # ── Run Detection ─────────────────────────────────────────────────────────────
@@ -218,6 +215,7 @@ else:
             avg_kpis = cell_data[KPI_FEATURES].mean().round(2).to_dict()
             issues = cell_data["detected_issue"].value_counts().to_dict()
             violations = "; ".join(cell_data["threshold_violations"].dropna().unique()[:5])
+            violations = violations.encode("ascii", "replace").decode("ascii")
 
             prompt = f"""You are a senior LTE network performance engineer.
 Analyze the following KPI data for cell {selected_flagged} and provide:
